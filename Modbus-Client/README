@@ -1,0 +1,6 @@
+Librairie modbus pour Mac/Linux/Windows
+https://github.com/stephane/libmodbus
+
+ou : sudo apt-get install libmodbus-dev
+
+Installée dans /usr/local/lib/libmodbus.la

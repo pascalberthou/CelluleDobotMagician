@@ -1,0 +1,129 @@
+#include <SPI.h>
+#include <Ethernet.h>
+#include <ArduinoModbus.h>
+
+/*-- Adresse des differents Capteurs reels et Virtuels --*/
+// Modbus INPUT REGISTERS
+/*#define INPUT_OK_SECU   10000
+#define INPUT_C2        10001
+#define INPUT_C1        10002
+#define INPUT_I         10003
+#define INPUT_C3        10004
+#define INPUT_FinPrise  10005
+#define INPUT_FinPose   10006
+#define INPUT_T1        10007
+#define INPUT_T2        10008
+#define INPUT_TI        10009
+#define INPUT_SCD       10010
+#define INPUT_SCG       10011
+#define INPUT_PE        10012
+*/
+#define INPUT_OK_SECU   0011
+#define INPUT_C2        0012
+#define INPUT_C1        0013
+#define INPUT_I         0014
+#define INPUT_C3        0015
+#define INPUT_FinPrise  0016
+#define INPUT_FinPose   0017
+#define INPUT_T1        0018
+#define INPUT_T2        0019
+#define INPUT_TI        0020
+#define INPUT_SCD       0021
+#define INPUT_SCG       0022
+#define INPUT_PE        0023
+
+/*-- Adresse des differentes Trajectoires --*/
+// Modbus Coil
+#define COIL_SECU     00000
+#define COIL_StopTi   00001
+#define COIL_StartTi  00002
+#define COIL_Stop2    00003
+#define COIL_Start2   00004
+#define COIL_Stop1    00005
+#define COIL_Start1   00006
+#define COIL_Prise    00007
+#define COIL_Pose     00008
+#define COIL_Droite   00009
+#define COIL_Gauche   00010
+
+// Configuration de l'adresse MAC et IP de l'Arduino
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+IPAddress ip(169, 254, 36, 66);  // Adresse IP statique
+
+#define INPUT_REGS_ADDR 00011
+#define COIL_REGS_ADDR 0
+
+EthernetServer ethServer(502);  // Serveur Modbus sur le port 502
+int valeur=26;
+int CoilValue=0;
+int stop; // Etat bouton d'urgence
+
+const int ledPin   =7; //debug
+const int buttonPin=2; // bouton urgence
+
+ModbusTCPServer modbusServer;
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+
+  // configure the LED as output
+  pinMode(ledPin, OUTPUT);
+  pinMode(buttonPin, INPUT);
+  digitalWrite(ledPin, LOW);
+
+  // Initialisation du module Ethernet
+  Ethernet.begin(mac, ip);
+  ethServer.begin();
+  Serial.print("Adresse IP : ");
+  Serial.println(Ethernet.localIP());
+
+  // Démarrer le serveur Modbus
+  if (!modbusServer.begin()) {
+    Serial.println("Échec de l'initialisation du serveur Modbus TCP");
+    while (1);
+  }
+
+  // Définition des registres Modbus (exemple : 10 registres de stockage)
+  modbusServer.configureHoldingRegisters(COIL_REGS_ADDR, 24);
+  //modbusServer.configureHoldingRegisters(COIL_REGS_ADDR,11);
+  Serial.println("Serveur Modbus TCP pret");
+}
+
+void loop() {
+  // Accepter les connexions clients
+  EthernetClient client = ethServer.available();
+  
+  //Serial.println("ecoute");
+   while (client.connected()) 
+   {
+      // poll for Modbus TCP requests, while client connected
+      modbusServer.poll();
+      modbusServer.accept(client);
+    // Exemple : Mettre à jour un registre avec une valeur
+    if (modbusServer.holdingRegisterWrite(INPUT_C1,valeur)!=1)
+      Serial.println("Error while writing holding register"); // Registre 0 = Temps en secondes
+    else
+      Serial.println("register Write");
+    
+    if ((CoilValue = modbusServer.holdingRegisterRead(COIL_StopTi))==-1){
+      Serial.println("Error while reading holding register"); // Registre 0 = Temps en secondes
+      digitalWrite(ledPin, LOW);
+    }
+    else
+    {
+      Serial.print("register Read");
+      Serial.println(CoilValue);
+      valeur=CoilValue;
+      digitalWrite(ledPin, HIGH);
+      delay(1);
+      digitalWrite(ledPin, LOW);
+    }
+
+    stop = digitalRead(buttonPin); // Lire l'état du bouton poussoir
+    if (stop == HIGH) {
+        digitalWrite(ledPin, HIGH);
+    }
+
+  }
+}
