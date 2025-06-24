@@ -1,3 +1,15 @@
+#include <command.h>
+#include <Dobot.h>
+#include <FlexiTimer2.h>
+#include <Message.h>
+#include <Packet.h>
+#include <Protocol.h>
+#include <ProtocolDef.h>
+#include <ProtocolID.h>
+#include <RingBuffer.h>
+#include <symbol.h>
+#include <type.h>
+
 #include <Dobot.h>
 #include <FlexiTimer2.h>
 //#include <Magician.h>
@@ -13,6 +25,7 @@
 #include <SoftwareSerial.h>
 #include <Arduino.h>
 
+//#define PIN_URGENCE 8  // Le bouton d'arrêt est connecté à la pin 8 (avec GND)
 
 
 void setup() {
@@ -25,8 +38,11 @@ Dobot_Init();
 }
 
 
+
+
 // boucle infinie
 void loop() {
+
   uint8_t resss;
   
   resss=Dobot_Piece(); //premier test de la présence d'une piéce sur le tapis 1 (capteur IR).
